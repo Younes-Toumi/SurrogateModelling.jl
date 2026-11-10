@@ -1,13 +1,18 @@
 using Random
 using Plots
 using Distributions
+
 using UncertaintyQuantification
 using UncertaintyQuantification: sample
+import UncertaintyQuantification: evaluate!
+
 using SurrogateModelling
 using DataFrames
 using AbstractGPs
 using KernelFunctions
 using LinearAlgebra
+
+
 
 Random.seed!(42)
 
@@ -24,7 +29,7 @@ model = Model(
     :y
 )
 
-n_train, n_test = 10, 1001
+n_train, n_test = 5, 1001
 
 design_train = MonteCarlo(n_train)
 design_test  = MonteCarlo(n_test)
@@ -32,8 +37,8 @@ design_test  = MonteCarlo(n_test)
 data_train = sample(X, design_train)
 data_test  = sample(X, design_test)
 
-UncertaintyQuantification.evaluate!(model, data_train)
-UncertaintyQuantification.evaluate!(model, data_test)
+evaluate!(model, data_train)
+evaluate!(model, data_test)
 
 # ---------------------------------------------------------
 # Prediction grid
@@ -147,18 +152,14 @@ scatter!(
 # ---------------------------------------------------------
 # 3) Posterior GP (conditioned on the training data)
 #
-# predict() with mode=:mean_and_var returns (mean, VARIANCE) -- explicit
-# sqrt needed for a ±2σ band, matching panel 2's convention exactly
-# (the original code's `σ_post` was used unsquare-rooted, an
-# inconsistency with panel 2's own correct sqrt.(σ2_ard) two lines above it).
+# predict() with mode=:mean_and_var returns (mean, STD)
 # ---------------------------------------------------------
 
-μ_post, σ2_post = predict(
+μ_post, σ_post = predict(
     gp_ard,
     Matrix(x_grid);
     mode = :mean_and_var,
 )
-σ_post = sqrt.(σ2_post)
 
 p3 = plot(
     x_plot,

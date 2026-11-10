@@ -58,7 +58,7 @@ function PolynomialChaosExpansion(
 end
 
 """
-    max_affordable_degree(degree_ctor::Function, d::Int, n::Int; oversample_factor=3.0) -> Int
+    max_affordable_degree(degree_ctor::Function, d::Int, n::Int; oversample_factor=1.0) -> Int
 
 Returns the largest degree `p` such that `n_terms(degree_ctor(p), d) ≤ oversample_factor × n`.
 

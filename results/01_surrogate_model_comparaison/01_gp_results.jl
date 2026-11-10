@@ -134,13 +134,12 @@ x3_f = IntervalVariable(-pi, pi, :x3)
 
 specs_f = InputSpec.([x1_f, x2_f, x3_f])     # broadcasts dispatch over each UQ.jl input
 
-
 print("\n# ============================================================\n")
 print("# 2. Ishigami Function f(x1, x2, x3) with n₀ = $n_train\n")
 print("# ============================================================\n\n")
 
 Q2_f, times_f = compare_kernels_averaged(
-    model_gfunction, 
+    model_ishigami,
     specs_f;
     n_train=n_train,
     n_runs=n_runs

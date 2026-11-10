@@ -8,7 +8,7 @@ distribution. Must be fitted before predictions can be made.
 
 # Fields
 - `X::Matrix{Float64}`: Training inputs of shape `(n_samples, n_dims)`
-- `y::Vector{Float64}`: Training outputs of length `n_samples`
+- `y::Vector{Float64}`: Training output of length `n_samples`
 - `mean_type::AbstractGPMean`: Prior mean specification (e.g. `GPZeroMean()`)
 - `kernel_type::AbstractGPKernel`: Kernel specification (e.g. `GPMatern52()`)
 - `θ::NamedTuple`: Current kernel hyperparameters
@@ -76,7 +76,7 @@ Set to `true` for noisy simulators, `false` for deterministic ones. Defaults to 
 # Examples
 ```julia
 gp = GaussianProcess(train_df, :y)
-gp = GaussianProcess(train_df, :y; mean_type=GPConstMean())
+gp = GaussianProcess(train_df, :y; mean_type=GPZeroMean())
 gp = GaussianProcess(train_df, :y; kernel_type=GPSquaredExponential(), learn_noise=true)
 ```
 
@@ -101,7 +101,7 @@ function GaussianProcess(
 
     # Infer starting values from data if not provided (avoids flat/degenerate regions)
     θ0 = isnothing(θ) ? default_θ0(kernel_type, X, y) : θ
-    θ = isnothing(θ) ? default_θ(kernel_type, X, y) : θ
+    θ  = isnothing(θ) ? default_θ(kernel_type, X, y) : θ
 
     # Optim.jl needs a flat Vector{Float64}; unflatten reconstructs the NamedTuple after optimisation
     flat_θ, unflatten = value_flatten(θ)
@@ -149,22 +149,25 @@ automatic differentiation, from 10 random restarts (see Notes).
 # Returns
 - `gp::GaussianProcess`: The same object, now with `gp.θ` and `gp.posterior` updated
 
+# Examples
+```julia
+gp = GaussianProcess(train_df, :y)
+fit!(gp)
+```
+
 # Notes
 - **Noise handling:**
   - If `gp.learn_noise = true`: noise variance σ² is included in `θ` and optimised
-  - If `gp.learn_noise = false`: noise is set to `0.1 * var(y)` during hyperparameter
-    optimisation (keeps the marginal-likelihood surface well-conditioned), then
-    tightened to `1e-8` for the final posterior (near-exact interpolation,
-    appropriate for a deterministic simulator)
+  - If `gp.learn_noise = false`: noise is set to `1e-8` during hyperparameter
+    optimisation (keeps the marginal-likelihood surface well-conditioned)
 - Runs 10 optimisation restarts (1 from the current `θ`, 9 from increasingly large
   random perturbations of it) and keeps the lowest-NLML result. Use [`refit!`](@ref)
-  instead for subsequent adaptive-sampling updates -- it warm-starts from the
+  instead for subsequent adaptive-sampling updates - it warm-starts from the
   current optimum with far fewer restarts, since the hyperparameters shouldn't
   need to move far after adding one point.
 - Convergence is not guaranteed - check `gp.θ` for reasonable hyperparameter values
   if predictions look off
-
-    """
+"""
 function fit!(gp::GaussianProcess)
 
     mean = build_mean(gp.mean_type, gp.X, gp.y)
@@ -262,10 +265,6 @@ hyperparameters shouldn't need to move far after adding one point.
 - `gp::GaussianProcess`: The same object, with `gp.X`, `gp.y`, `gp.θ`, and
   `gp.posterior` all updated
 
-# Notes
-- Noise handling is identical to [`fit!`](@ref): `0.1 * var(y)` during
-  optimisation, tightened to `1e-8` for the posterior when `learn_noise = false`
-
 """
 function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::AbstractVector{Float64})
 
@@ -349,7 +348,7 @@ end
     predict(gp::GaussianProcess, Xnew::AbstractMatrix{Float64}; mode=:mean_and_var, n_samples=1)
 
 Return posterior predictions at new input locations. This is the single source
-of truth for GP prediction -- [`evaluate!`](@ref) is a thin DataFrame-writing
+of truth for GP prediction - [`evaluate!`](@ref) is a thin DataFrame-writing
 wrapper around this function; both share identical logic for every mode.
 
 # Arguments
@@ -372,7 +371,7 @@ wrapper around this function; both share identical logic for every mode.
     exactly as-is for backward compatibility.
 
     - `:sample` - draws `n_samples` jointly-correlated realizations from the
-    posterior at `Xnew` and returns them as an `(n_points × n_samples)` matrix.
+    posterior at `Xnew` and returns them as an `(n_points x n_samples)` matrix.
     Unlike the other modes, this genuinely needs the full joint covariance
     (samples must be correlated across points), so it cannot use a
     marginal-only fast path.
@@ -453,6 +452,7 @@ The output column names are derived from `gp.y_symbol`:
 
 # Examples
 ```julia
+gp = GaussianProcess(train_df, :y)
 fit!(gp)
 
 evaluate!(gp, df)                                  # adds :y (mean)
@@ -506,7 +506,5 @@ function evaluate!(
 
     return nothing
 end
-
-
 
 export GaussianProcess, fit!, refit!, predict, evaluate!
