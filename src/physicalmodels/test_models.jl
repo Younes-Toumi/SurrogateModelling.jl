@@ -36,7 +36,7 @@ model_gfunction = Model(
 )
 
 model_simple = Model(
-    df -> df.x1 .- df.x2 - -2,
+    df -> (df.x1 .- df.x2) .+ 2,
     :y
 )
 

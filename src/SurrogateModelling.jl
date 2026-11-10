@@ -26,6 +26,7 @@ using Zygote
 using Metaheuristics
 
 using UncertaintyQuantification
+import  UncertaintyQuantification: evaluate!
 
 # ================================================================================= #
 # 0. helper one-liner functions

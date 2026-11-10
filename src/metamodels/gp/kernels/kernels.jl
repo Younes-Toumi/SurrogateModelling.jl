@@ -103,6 +103,6 @@ end
 
 export 
     build_kernel,
-    GPSquaredExponential, GPMatern52, GPMatern32, GPMatern12, GPCompositeKernel
+    GPSquaredExponential, GPMatern52, GPMatern32, GPMatern12, GPCompositeKernel,
     kernel_name, default_θ, default_ard_θ,  default_θ0, default_ard_θ0, build_kernel,
     median_pairwise_distance, min_pairwise_distance, max_pairwise_distance
