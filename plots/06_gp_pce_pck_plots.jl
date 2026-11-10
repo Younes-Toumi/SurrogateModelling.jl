@@ -1,8 +1,11 @@
 using Random
 using Plots
 using Distributions
+
 using UncertaintyQuantification
 using UncertaintyQuantification: sample
+import UncertaintyQuantification: evaluate!
+
 using SurrogateModelling
 using DataFrames
 using Statistics
@@ -73,15 +76,15 @@ fit!(pck)
 # ---------------------------------------------------------
 # Predictions ( mean + std where available )
 # ---------------------------------------------------------
-μ_gp, σ2_gp = predict(gp, X_plot; mode=:mean_and_var)
-σ_gp = sqrt.(max.(σ2_gp, 0.0))
+μ_gp, σ_gp = predict(gp, X_plot; mode=:mean_and_var)
+σ_gp = max.(σ_gp, 0.0)
 q2_gp = q2(data_test.y, predict(gp, X_test; mode=:mean))
 
 μ_pce = predict(pce, X_plot)
 q2_pce = q2(data_test.y, predict(pce, X_test))
 
-μ_pck, σ2_pck = predict(pck, X_plot; mode=:mean_and_var)
-σ_pck = sqrt.(max.(σ2_pck, 0.0))
+μ_pck, σ_pck = predict(pck, X_plot; mode=:mean_and_var)
+σ_pck = max.(σ_pck, 0.0)
 q2_pck = q2(data_test.y, predict(pck, X_test; mode=:mean))
 
 # ---------------------------------------------------------
