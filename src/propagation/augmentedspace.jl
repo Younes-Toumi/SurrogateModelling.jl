@@ -197,10 +197,9 @@ function build_augmented_design(
     physical_model,
     specs     :: Vector{<:AbstractInputSpec},
     n_samples :: Int;
-    seed      :: Int = 42,
     y_symbol  :: Symbol = :y
 )
-    # ── Collect epistemic dims across ALL specs for a single JOINT LHS ───────
+    # Collect epistemic dims across ALL specs for a single JOINT LHS 
     raw_lbs,     raw_ubs     = Float64[], Float64[]   # TRUE bounds -- θ is SAMPLED from these
     relaxed_lbs, relaxed_ubs = Float64[], Float64[]   # relaxed bounds -- used ONLY inside θ_to_v
     spec_epi_range = Vector{UnitRange{Int}}(undef, length(specs))
