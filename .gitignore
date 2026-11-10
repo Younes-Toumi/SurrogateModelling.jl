@@ -1,0 +1,7 @@
+.vscode/
+.claude/
+
+*.jl.cov
+*.jl.mem
+
+docs/build/
