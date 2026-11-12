@@ -44,7 +44,7 @@ end
     nothing
 end
 
-@testset "Interface Contact" begin
+@testset "Interface Contract" begin
     nothing
 end
 
