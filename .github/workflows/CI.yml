@@ -1,0 +1,32 @@
+name: CI # label shown in the github action
+on: # says when the workflow runs
+  push: # push to younes every time something lands on main branch
+    branches:
+      - younes
+  pull_request: # every time a pr is opened or updated
+  workflow_dispatch: # adds a manual "run workflow" button in the Actions tab
+
+permissions: # github gives each run a temporary token, and this block limits what it may do
+  actions: write
+  contents: read
+
+jobs:
+  test: # name we can choose, each job runs on a fresh vm
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy: # runs the job once for every combination of the listed values
+      fail-fast: false
+      matrix:
+        version:
+          - '1.12' # needs quotes because YAML would read 1.10 as 1.0 otherwise
+        os: # here it runs only on ubuntu, but later on also windows/mac?
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # copies repo onto machine. equivalent: git clone
+      - uses: julia-actions/steup-julia@v2 # installs julia 1.12. eq: juliaup add 1.12
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2 # saves ~/.julia between runs, so packages aren’t re-downloaded every time
+      - uses: julia-actions/julia-buildpkg@v1 # installs your exact dependency versions from the Manifest. eq: Pkg.instantiate()
+      - uses: julia-actions/julia-runtest@v1 # runs test suite. eq: Pkg.test()
+        
