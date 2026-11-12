@@ -23,7 +23,7 @@ jobs:
           - ubuntu-latest
     steps:
       - uses: actions/checkout@v4 # copies repo onto machine. equivalent: git clone
-      - uses: julia-actions/steup-julia@v2 # installs julia 1.12. eq: juliaup add 1.12
+      - uses: julia-actions/setup-julia@v2 # installs julia 1.12. eq: juliaup add 1.12
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2 # saves ~/.julia between runs, so packages aren’t re-downloaded every time
