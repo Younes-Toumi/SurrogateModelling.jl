@@ -39,7 +39,7 @@ fit!(gp)
 function eole_realizations(gp, W::Matrix{Float64}, X_train::Matrix{Float64},
                             X_query::Matrix{Float64}; N_samples::Int,
                             energy_threshold=0.99, δ=1e-8)
-    kern    = gp.kernel_posterior
+    kern    = gp.kernel_postfit
     N0      = size(W, 1)
 
     K_W   = kernelmatrix(kern, RowVecs(W),       RowVecs(W))

@@ -17,13 +17,13 @@ distribution. Must be fitted before predictions can be made.
 - `y_symbol::Symbol`: Name of the output column in the original `DataFrame`
 - `x_names::Vector{Symbol}`: Names of the input columns, used for column-safe prediction
 - `unflatten`: Inverse of `value_flatten` - reconstructs a `NamedTuple` from a flat vector
-- `mean_prior`, `kernel_prior`: Prior mean/kernel objects built at construction time
-- `mean_posterior`, `kernel_posterior`: Mean/kernel objects built at the optimised `θ`
+- `mean_prefit`, `kernel_prefit`: pre-fitted mean/kernel objects built at construction time
+- `mean_postfit`, `kernel_postfit`: Mean/kernel objects built at the optimised `θ`
 - `learn_noise::Bool`: If `true`, observation noise σ² is included as a learnable
   hyperparameter; if `false`, a fixed adaptive jitter is used instead
 
 # Notes
-here the subscript "_prior/_posterior" refers to building the mean and or kernel
+here the subscript "_prefit/_postfit" refers to building the mean and or kernel
 either with the initial θ / the optimal θ.
 """
 mutable struct GaussianProcess <: UQModel
@@ -42,10 +42,10 @@ mutable struct GaussianProcess <: UQModel
     x_names::Vector{Symbol}
 
     unflatten
-    mean_prior
-    kernel_prior
-    mean_posterior
-    kernel_posterior
+    mean_prefit
+    kernel_prefit
+    mean_postfit
+    kernel_postfit
     learn_noise::Bool
 end
 
@@ -106,8 +106,8 @@ function GaussianProcess(
     # Optim.jl needs a flat Vector{Float64}; unflatten reconstructs the NamedTuple after optimisation
     flat_θ, unflatten = value_flatten(θ)
 
-    mean_prior = build_mean(mean_type, X, y)
-    kernel_prior = build_kernel(kernel_type, unflatten(flat_θ))
+    mean_prefit = build_mean(mean_type, X, y)
+    kernel_prefit = build_kernel(kernel_type, unflatten(flat_θ))
 
     return GaussianProcess(
         X,
@@ -121,8 +121,8 @@ function GaussianProcess(
         y_symbol,
         x_names,
         unflatten,
-        mean_prior,
-        kernel_prior,
+        mean_prefit,
+        kernel_prefit,
         nothing,
         nothing,
         learn_noise
@@ -240,8 +240,8 @@ function fit!(gp::GaussianProcess)
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
     gp.flat_θ = best.minimizer
-    gp.mean_posterior = x -> mean(gp.posterior(x))
-    gp.kernel_posterior = build_kernel(gp.kernel_type, θ_opt)
+    gp.mean_postfit = x -> mean(gp.posterior(x))
+    gp.kernel_postfit = build_kernel(gp.kernel_type, θ_opt)
 
     return gp
 end
@@ -337,8 +337,8 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
     gp.flat_θ = best.minimizer    # ← store the unconstrained optimum
-    gp.mean_posterior = x -> mean(gp.posterior(x))
-    gp.kernel_posterior = build_kernel(gp.kernel_type, θ_opt)
+    gp.mean_postfit = x -> mean(gp.posterior(x))
+    gp.kernel_postfit = build_kernel(gp.kernel_type, θ_opt)
 
     return gp
 end

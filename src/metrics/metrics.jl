@@ -74,7 +74,7 @@ assumption, but GP-only and slightly optimistic vs. true refit-LOO.
 """
 function q2_loo_gp_fast(gp::GaussianProcess)
     gp.posterior === nothing && error("Fit the GP first.")
-    kern  = gp.kernel_posterior
+    kern  = gp.kernel_postfit
     K     = kernelmatrix(kern, RowVecs(gp.X)) + 1e-8I   # match your posterior jitter
     Kinv  = inv(cholesky(Symmetric(K)))
     α     = Kinv * gp.y

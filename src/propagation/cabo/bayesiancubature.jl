@@ -1,6 +1,6 @@
 function precompute_h_pvc_terms(gp, cholK, W, v_plus::AbstractVector, u_samples)
     
-    kern = gp.kernel_posterior
+    kern = gp.kernel_postfit
     Nx      = size(u_samples, 1)
     W_prime = hcat(u_samples, repeat(v_plus', Nx, 1))    # Nx × d
     K_prime = kernelmatrix(kern, RowVecs(W_prime), RowVecs(W))
@@ -10,7 +10,7 @@ end
 
 function h_pvc(gp, cholK, W, u::AbstractVector, v_plus::AbstractVector, W_prime, v2_sum)
     
-    kern = gp.kernel_posterior
+    kern = gp.kernel_postfit
     Nx      = size(W_prime, 1)
     w_mat   = reshape([u; v_plus], 1, :)
 

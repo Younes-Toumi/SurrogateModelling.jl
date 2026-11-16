@@ -1,6 +1,6 @@
 function build_kl_sampler(gp, W::Matrix{Float64}, X_train::Matrix{Float64};
                            N_samples, Nx, energy_threshold=0.99, δ=1e-8)
-    kern    = gp.kernel_posterior
+    kern    = gp.kernel_postfit
     N0      = size(W, 1)
     n_train = size(X_train, 1)
     Ng      = N_samples
