@@ -2,6 +2,7 @@ using SurrogateModelling
 using DataFrames
 using Test
 
+# testing the one dimensional construction of GP
 @testset "1D Construction" begin
     # deterministic design: no RNG needed for the data
     n_train = 8
@@ -20,6 +21,7 @@ using Test
     @test_throws ErrorException predict(gp, gp.X)   # predicting before fit! must fail
 end
 
+# testing the higher dimension construction of GP
 @testset "2D Construction" begin
     # deterministic design: no RNG needed for the data
     n_train = 8
