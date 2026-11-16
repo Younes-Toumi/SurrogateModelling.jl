@@ -60,8 +60,8 @@ model = Model(rv -> rv.x1.^2 .+ rv.x2.^2, :y)
 data_train = sample([x1, x2], MonteCarlo(50))
 data_test = sample([x1, x2], MonteCarlo(1000))
 
-UncertaintyQuantification.evaluate!(model, data_train)
-UncertaintyQuantification.evaluate!(model, data_test)
+evaluate!(model, data_train)
+evaluate!(model, data_test)
 
 gp = GaussianProcess(data_train, :y; kernel_type=GPMatern52())
 fit!(gp)
