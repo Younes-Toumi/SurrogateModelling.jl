@@ -92,7 +92,8 @@ println(
 # ================================================================================
 print("\n")
 
-μ_gp, σ_gp = predict(gp, X_test; mode=:mean_and_var)
+μ_gp, σ2_gp = predict(gp, X_test; mode=:mean_and_var)
+σ_gp = sqrt.(σ2_gp)
 println("GP predictive std range:  [", round(minimum(σ_gp), digits=4), ", ", round(maximum(σ_gp), digits=4), "]")
 
 μ_pck, σ_pck = predict(pck, X_test; mode=:mean_and_var)

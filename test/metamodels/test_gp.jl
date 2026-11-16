@@ -102,9 +102,10 @@ end
     end    
 
     @testset "interpolates the training data" begin
-        μ_train, σ_train = predict(gp, gp.X) # we predict training data
+        μ_train, σ2_train = predict(gp, gp.X) # we predict training data
+        σ_train = sqrt.(σ2_train)
         @test maximum(abs.(μ_train .- gp.y)) ≤ 1e-6 * std(gp.y) # mean should match the output
-        @test maximum(σ_train .^ 2) ≈ 1e-8 atol = 1e-10
+        @test maximum(σ2_train) ≈ 1e-8 atol = 1e-10
     end
 end
 

@@ -34,7 +34,8 @@ end
 # Pf related 
 function u_objective(gp, u::AbstractVector, v_plus::AbstractVector, y_star::Float64)
     w        = vcat(u, v_plus)
-    μ_w, σ_w = predict(gp, reshape(w, 1, :), mode=:mean_and_var)
+    μ_w, σ2_w = predict(gp, reshape(w, 1, :), mode=:mean_and_var)
+    σ_w = sqrt.(σ2_w)
     return abs(μ_w[1] - y_star) / max(σ_w[1], 1e-10)
 end
 

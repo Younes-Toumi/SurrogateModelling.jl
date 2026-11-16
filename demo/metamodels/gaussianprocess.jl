@@ -58,7 +58,7 @@ X_test = Matrix(data_test[:, [:x1, :x2]])
 
 # predict() is non-mutating and returns the requested quantities directly.
 # Default mode=:mean_and_var returns (mean, std)
-μ, σ = predict(gp, X_test)
+μ, σ2 = predict(gp, X_test)
 
 println("\nMSE: ", round(mse(data_test.y, μ), digits=5))
 println("Q²:  ", round(q2(data_test.y, μ), digits=5))

@@ -58,7 +58,8 @@ x_plot = reshape(
     :, 1
 )
 
-μ_static, σ_static = predict(gp_static, x_plot)
+μ_static, σ2_static = predict(gp_static, x_plot)
+σ_static = sqrt.(σ2_static)
 
 
 # ---------------------------------------------------------
@@ -90,8 +91,8 @@ while nrow(data_adaptive) < n_final
     fit!(gp)
 
 
-    μ, σ = predict(gp, x_plot)
-
+    μ, σ2 = predict(gp, x_plot)
+    σ = sqrt.(σ2)
 
     # maximum uncertainty criterion
     idx = argmax(σ)
@@ -121,8 +122,8 @@ gp_adaptive = GaussianProcess(
 
 fit!(gp_adaptive)
 
-μ_adaptive, σ_adaptive = predict(gp_adaptive, x_plot)
-
+μ_adaptive, σ2_adaptive = predict(gp_adaptive, x_plot)
+σ_adaptive = sqrt.(σ2_adaptive)
 
 
 # ---------------------------------------------------------

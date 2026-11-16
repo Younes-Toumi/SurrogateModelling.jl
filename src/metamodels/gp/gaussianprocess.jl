@@ -365,11 +365,8 @@ wrapper around this function; both share identical logic for every mode.
     point (matches `evaluate!`'s `_var` column and `AbstractGPs`'
     `mean_and_var` convention).
 
-    - `:mean_and_var` (default) - returns `(μ, σ)`, mean and **standard
-    deviation** (√variance). This is the long-standing return convention used
-    throughout the rest of the codebase (`μ, σ = predict(gp, X)`) and is kept
-    exactly as-is for backward compatibility.
-
+    - `:mean_and_var` (default) - returns `(μ, var)`, mean and variance. 
+    
     - `:sample` - draws `n_samples` jointly-correlated realizations from the
     posterior at `Xnew` and returns them as an `(n_points x n_samples)` matrix.
     Unlike the other modes, this genuinely needs the full joint covariance
@@ -412,7 +409,7 @@ function predict(
 
     elseif mode === :mean_and_var
         μ, v = mean_and_var(gp.posterior, Xrows)
-        return μ, sqrt.(v)                          # (mean, STD) preserves existing convention
+        return μ, v                          # (mean, STD) preserves existing convention
 
     elseif mode === :sample
         fp = gp.posterior(Xrows, 1e-8)                    # full joint covariance
@@ -464,9 +461,7 @@ evaluate!(gp, df; mode=:sample, n_samples=50)      # adds :y_sample_1 ... :y_sam
 - Prefer `evaluate!` over `predict` when you want to keep predictions attached
   to the original dataset for downstream analysis or export
 
-- `:mean_and_var` internally requests `predict(...; mode=:mean_and_var)` (which
-returns std, per its own convention) and squares it back to variance for the
-`_var` column
+- `:mean_and_var` internally requests `predict(...; mode=:mean_and_var)` 
 
 """
 function evaluate!(
@@ -489,9 +484,9 @@ function evaluate!(
         data[!, col_var] = predict(gp, Xmat; mode=:var)
 
     elseif mode === :mean_and_var
-        μ, σ = predict(gp, Xmat; mode=:mean_and_var)
+        μ, var = predict(gp, Xmat; mode=:mean_and_var)
         data[!, col_mean] = μ
-        data[!, col_var]  = σ .^ 2      # square back to variance for the "_var" column
+        data[!, col_var]  = var      # square back to variance for the "_var" column
 
     elseif mode === :sample
         samples = predict(gp, Xmat; mode=:sample, n_samples=n_samples)
