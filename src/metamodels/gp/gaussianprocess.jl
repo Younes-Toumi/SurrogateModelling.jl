@@ -171,7 +171,7 @@ fit!(gp)
 function fit!(gp::GaussianProcess)
 
     mean = build_mean(gp.mean_type, gp.X, gp.y)
-    Xt = collect(gp.X')
+    Xrows = RowVecs(gp.X)   # each row of gp.X is one input point
 
 
     function nlml(flat_θ)
@@ -183,7 +183,7 @@ function fit!(gp::GaussianProcess)
 
         # when learn_noise = true  -> σ² is a free parameter (noisy observations) else 1e-8
         noise = gp.learn_noise ? θ.noise : 1e-8
-        fx = f(Xt, noise)
+        fx = f(Xrows, noise)
 
         val = -logpdf(fx, gp.y) # negative because Optim.jl minimises
 
@@ -235,7 +235,7 @@ function fit!(gp::GaussianProcess)
     f_opt      = GP(kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
-    fx         = f_opt(gp.X', noise)
+    fx         = f_opt(Xrows, noise)
 
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
@@ -272,7 +272,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
     gp.y = vcat(gp.y, y_new)
 
     mean = build_mean(gp.mean_type, gp.X, gp.y)
-    Xt = collect(gp.X')
+    Xrows = RowVecs(gp.X)   # each row of gp.X is one input point
 
     function nlml(flat_θ)
         θ = gp.unflatten(flat_θ)                     # recover NamedTuple so kernel can unpack named fields
@@ -283,7 +283,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
         # when learn_noise = true  -> σ² is a free parameter (noisy observations) else: jitter = 1e-8
         noise = gp.learn_noise ? θ.noise : 1e-8
 
-        fx = f(Xt, noise)
+        fx = f(Xrows, noise)
         val = -logpdf(fx, gp.y) # negative because Optim.jl minimises
 
         return val
@@ -332,7 +332,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
     f_opt      = GP(kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
-    fx         = f_opt(gp.X', noise)
+    fx         = f_opt(Xrows, noise)
 
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
