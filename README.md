@@ -66,7 +66,7 @@ UncertaintyQuantification.evaluate!(model, data_test)
 gp = GaussianProcess(data_train, :y; kernel_type=GPMatern52())
 fit!(gp)
 
-μ, σ = predict(gp, Matrix(data_test[:, [:x1, :x2]]))
+μ, σ² = predict(gp, Matrix(data_test[:, [:x1, :x2]]))
 println("Q² = ", q2(data_test.y, μ))
 ```
 

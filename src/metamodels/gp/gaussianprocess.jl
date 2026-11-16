@@ -17,13 +17,13 @@ distribution. Must be fitted before predictions can be made.
 - `y_symbol::Symbol`: Name of the output column in the original `DataFrame`
 - `x_names::Vector{Symbol}`: Names of the input columns, used for column-safe prediction
 - `unflatten`: Inverse of `value_flatten` - reconstructs a `NamedTuple` from a flat vector
-- `mean_prior`, `kernel_prior`: Prior mean/kernel objects built at construction time
-- `mean_posterior`, `kernel_posterior`: Mean/kernel objects built at the optimised `θ`
+- `mean_prefit`, `kernel_prefit`: pre-fitted mean/kernel objects built at construction time
+- `mean_postfit`, `kernel_postfit`: Mean/kernel objects built at the optimised `θ`
 - `learn_noise::Bool`: If `true`, observation noise σ² is included as a learnable
   hyperparameter; if `false`, a fixed adaptive jitter is used instead
 
 # Notes
-here the subscript "_prior/_posterior" refers to building the mean and or kernel
+here the subscript "_prefit/_postfit" refers to building the mean and or kernel
 either with the initial θ / the optimal θ.
 """
 mutable struct GaussianProcess <: UQModel
@@ -42,10 +42,10 @@ mutable struct GaussianProcess <: UQModel
     x_names::Vector{Symbol}
 
     unflatten
-    mean_prior
-    kernel_prior
-    mean_posterior
-    kernel_posterior
+    mean_prefit
+    kernel_prefit
+    mean_postfit
+    kernel_postfit
     learn_noise::Bool
 end
 
@@ -106,8 +106,8 @@ function GaussianProcess(
     # Optim.jl needs a flat Vector{Float64}; unflatten reconstructs the NamedTuple after optimisation
     flat_θ, unflatten = value_flatten(θ)
 
-    mean_prior = build_mean(mean_type, X, y)
-    kernel_prior = build_kernel(kernel_type, unflatten(flat_θ))
+    mean_prefit = build_mean(mean_type, X, y)
+    kernel_prefit = build_kernel(kernel_type, unflatten(flat_θ))
 
     return GaussianProcess(
         X,
@@ -121,8 +121,8 @@ function GaussianProcess(
         y_symbol,
         x_names,
         unflatten,
-        mean_prior,
-        kernel_prior,
+        mean_prefit,
+        kernel_prefit,
         nothing,
         nothing,
         learn_noise
@@ -171,7 +171,7 @@ fit!(gp)
 function fit!(gp::GaussianProcess)
 
     mean = build_mean(gp.mean_type, gp.X, gp.y)
-    Xt = collect(gp.X')
+    Xrows = RowVecs(gp.X)   # each row of gp.X is one input point
 
 
     function nlml(flat_θ)
@@ -183,7 +183,7 @@ function fit!(gp::GaussianProcess)
 
         # when learn_noise = true  -> σ² is a free parameter (noisy observations) else 1e-8
         noise = gp.learn_noise ? θ.noise : 1e-8
-        fx = f(Xt, noise)
+        fx = f(Xrows, noise)
 
         val = -logpdf(fx, gp.y) # negative because Optim.jl minimises
 
@@ -235,13 +235,13 @@ function fit!(gp::GaussianProcess)
     f_opt      = GP(kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
-    fx         = f_opt(gp.X', noise)
+    fx         = f_opt(Xrows, noise)
 
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
     gp.flat_θ = best.minimizer
-    gp.mean_posterior = x -> mean(gp.posterior(x))
-    gp.kernel_posterior = build_kernel(gp.kernel_type, θ_opt)
+    gp.mean_postfit = x -> mean(gp.posterior(x))
+    gp.kernel_postfit = build_kernel(gp.kernel_type, θ_opt)
 
     return gp
 end
@@ -272,7 +272,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
     gp.y = vcat(gp.y, y_new)
 
     mean = build_mean(gp.mean_type, gp.X, gp.y)
-    Xt = collect(gp.X')
+    Xrows = RowVecs(gp.X)   # each row of gp.X is one input point
 
     function nlml(flat_θ)
         θ = gp.unflatten(flat_θ)                     # recover NamedTuple so kernel can unpack named fields
@@ -283,7 +283,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
         # when learn_noise = true  -> σ² is a free parameter (noisy observations) else: jitter = 1e-8
         noise = gp.learn_noise ? θ.noise : 1e-8
 
-        fx = f(Xt, noise)
+        fx = f(Xrows, noise)
         val = -logpdf(fx, gp.y) # negative because Optim.jl minimises
 
         return val
@@ -332,13 +332,13 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
     f_opt      = GP(kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
-    fx         = f_opt(gp.X', noise)
+    fx         = f_opt(Xrows, noise)
 
     gp.θ         = θ_opt
     gp.posterior = posterior(fx, gp.y)
     gp.flat_θ = best.minimizer    # ← store the unconstrained optimum
-    gp.mean_posterior = x -> mean(gp.posterior(x))
-    gp.kernel_posterior = build_kernel(gp.kernel_type, θ_opt)
+    gp.mean_postfit = x -> mean(gp.posterior(x))
+    gp.kernel_postfit = build_kernel(gp.kernel_type, θ_opt)
 
     return gp
 end
@@ -365,11 +365,8 @@ wrapper around this function; both share identical logic for every mode.
     point (matches `evaluate!`'s `_var` column and `AbstractGPs`'
     `mean_and_var` convention).
 
-    - `:mean_and_var` (default) - returns `(μ, σ)`, mean and **standard
-    deviation** (√variance). This is the long-standing return convention used
-    throughout the rest of the codebase (`μ, σ = predict(gp, X)`) and is kept
-    exactly as-is for backward compatibility.
-
+    - `:mean_and_var` (default) - returns `(μ, var)`, mean and variance. 
+    
     - `:sample` - draws `n_samples` jointly-correlated realizations from the
     posterior at `Xnew` and returns them as an `(n_points x n_samples)` matrix.
     Unlike the other modes, this genuinely needs the full joint covariance
@@ -412,7 +409,7 @@ function predict(
 
     elseif mode === :mean_and_var
         μ, v = mean_and_var(gp.posterior, Xrows)
-        return μ, sqrt.(v)                          # (mean, STD) preserves existing convention
+        return μ, v                          # (mean, STD) preserves existing convention
 
     elseif mode === :sample
         fp = gp.posterior(Xrows, 1e-8)                    # full joint covariance
@@ -464,9 +461,7 @@ evaluate!(gp, df; mode=:sample, n_samples=50)      # adds :y_sample_1 ... :y_sam
 - Prefer `evaluate!` over `predict` when you want to keep predictions attached
   to the original dataset for downstream analysis or export
 
-- `:mean_and_var` internally requests `predict(...; mode=:mean_and_var)` (which
-returns std, per its own convention) and squares it back to variance for the
-`_var` column
+- `:mean_and_var` internally requests `predict(...; mode=:mean_and_var)` 
 
 """
 function evaluate!(
@@ -489,9 +484,9 @@ function evaluate!(
         data[!, col_var] = predict(gp, Xmat; mode=:var)
 
     elseif mode === :mean_and_var
-        μ, σ = predict(gp, Xmat; mode=:mean_and_var)
+        μ, var = predict(gp, Xmat; mode=:mean_and_var)
         data[!, col_mean] = μ
-        data[!, col_var]  = σ .^ 2      # square back to variance for the "_var" column
+        data[!, col_var]  = var      # square back to variance for the "_var" column
 
     elseif mode === :sample
         samples = predict(gp, Xmat; mode=:sample, n_samples=n_samples)

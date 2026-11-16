@@ -65,11 +65,11 @@ x_plot = x_grid.x
     variance    = 1.0,
 )
 
-kernel_prior = SurrogateModelling.build_kernel(GPSquaredExponential(), θ_init)
-gp_prior_raw = GP(kernel_prior)                       # AbstractGPs defaults to zero mean
+kernel_prefit = SurrogateModelling.build_kernel(GPSquaredExponential(), θ_init)
+gp_prior_raw = GP(kernel_prefit)                       # AbstractGPs defaults to zero mean
 fx_prior     = gp_prior_raw(x_plot', 1e-8)             # small jitter, purely numerical
 
-mean_prior, var_prior = mean_and_var(fx_prior)
+mean_prefit, var_prior = mean_and_var(fx_prior)
 std_prior = sqrt.(var_prior)
 
 # ---------------------------------------------------------
@@ -78,7 +78,7 @@ std_prior = sqrt.(var_prior)
 
 p1 = plot(
     x_plot,
-    mean_prior,
+    mean_prefit,
     ribbon = 2 .* std_prior,
     fillalpha = 0.25,
     color=:steelblue,
@@ -117,7 +117,7 @@ gp_ard = GaussianProcess(
 
 fit!(gp_ard)   # optimizes θ AND builds gp_ard.posterior; we only need the optimized kernel here
 
-kernel_ard = gp_ard.kernel_posterior
+kernel_ard = gp_ard.kernel_postfit
 
 prior_ard = GP(kernel_ard)                 # zero mean, optimized kernel, still UNCONDITIONED
 fx_prior_ard = prior_ard(x_plot', 1e-8)

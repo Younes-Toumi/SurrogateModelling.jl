@@ -153,7 +153,7 @@ function cabo_loop(
             )            
         else
             W     = Matrix(data[:, w_names])
-            K_bc  = kernelmatrix(gp.kernel_posterior, RowVecs(W))
+            K_bc  = kernelmatrix(gp.kernel_postfit, RowVecs(W))
             cholK = cholesky(Symmetric(K_bc + 1e-8I))
     
             W_prime, v2_sum = precompute_h_pvc_terms(gp, cholK, W, v_plus, u_samples)

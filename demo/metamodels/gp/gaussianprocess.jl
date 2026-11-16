@@ -32,7 +32,7 @@ gp = GaussianProcess(data_aug_train, y_symbol)
 fit!(gp)
 
 # 5. prediction capacity
-y_pred, y_pred_σ = predict(gp, W_aug_test) 
+y_pred, y_pred_σ2 = predict(gp, W_aug_test) 
 
 rmse_val = rmse(y_test, y_pred)
 q2_val = q2(y_test, y_pred)
