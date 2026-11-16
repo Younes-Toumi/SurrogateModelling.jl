@@ -109,6 +109,35 @@ end
     end
 end
 
-@testset "Accuracy" begin
-    nothing
+@testset "Predict" begin
+    n_train = 10
+    n_test = 1001
+    
+    x1 = RandomVariable(Uniform(-1, 1), :x1)
+    x2 = RandomVariable(Uniform(-1, 1), :x2)
+
+    model = Model( # himmelblau
+        df -> (df.x1 .^ 2 .+ df.x2 .- 11) .^ 2 .+ (df.x1 .+ df.x2 .^ 2 .- 7) .^ 2,
+        :y
+    )
+
+    data_train = sample([x1, x2], MonteCarlo(n_train))
+
+    # adds the output vector :y to the dataframes
+    evaluate!(model, data_train)
+
+    gp = GaussianProcess(data_train, :y)
+    fit!(gp)
+
+    X_new = [0.1 0.2; -0.7 0.4; 0.9 -0.9]
+    m = size(X_new, 1)
+
+    μ, σ² = predict(gp, X_new)
+
+    n_samples = 5
+    gp_samples = predict(gp, X_new; mode=:sample, n_samples=n_samples)
+    
+    @test predict(gp, X_new; mode = :mean) ≈ μ
+    @test predict(gp, X_new; mode = :var)  ≈ σ²   # :var gives a variance, the 
+    @test size(gp_samples) == (m, n_samples)          # m rows (points) × 5 columns (samples)
 end
