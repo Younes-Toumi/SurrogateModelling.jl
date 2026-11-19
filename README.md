@@ -5,7 +5,6 @@
 <p align="center">
     <img src="assets/propagation_pipeline.png" 
     alt="Augmented space → Surrogates → Adaptive enrichment → Bound propagation" 
-    width="500"
   />
 </p>
 
@@ -16,7 +15,7 @@
   <img 
     src="assets/cabo_mean_bounds.png" 
     alt="CABO samples converging on the true min and max" 
-    width="500"/>
+    />
 </p>
 
 ---
@@ -41,7 +40,6 @@ Each input is classified by its type of uncertainty and mapped to standard norma
   <img
     src = "assets/input_classification.png"
     alt = "uncertain input classification"
-    width = "500"
   />
 </p>
 
@@ -108,8 +106,7 @@ fit!(metamodel)
   <img
     src = "assets/surrogate_comparison.png"
     alt="GP vs PCE vs PCK on a 1D function"
-    width = "500"
-  />
+    />
 </p>
 
 **PCE** (a global polynomial) can't resolve the localised structure; **PCK** adds a **GP** residual and recovers it, with calibrated uncertainty.
