@@ -1,24 +1,125 @@
-# Master Thesis SurrogateModelling.jl
-*Surrogate Modelling for Complex Numerical Models under Imprecise Probabilities*
+# SurrogateModelling.jl
 
-This repository contains the code developed for my Master's thesis in Computational Engineering at Leibniz University Hannover (LUH), carried out at the Institute for Risk and Reliability.
+**A surrogate-based propagation of imprecise probabilities through expensive numerical models, in Julia.**
+
+<p align="center">
+    <img src="assets/propagation_pipeline.png" 
+    alt="Augmented space → Surrogates → Adaptive enrichment → Bound propagation" 
+    width="500"
+  />
+</p>
+
+
+> **Headline result:** On a 2D Gaussian-mixture benchmark, CABO recovers the bounds of the expected response to $\leq 1 \%$ **relative error** with **27 true-model calls**, versus $3 \times 10^7$ for a brute-force double-loop Monte Carlo reference.
+
+<p align="center">
+  <img 
+    src="assets/cabo_mean_bounds.png" 
+    alt="CABO samples converging on the true min and max" 
+    width="500"/>
+</p>
+
+---
 
 ## Context
-Uncertainty-quantification problems rarely come with precisely known probability distribution for every input. Some quantities are only known to lie within an interval or distribution family whose parameters are themselves uncertain. This mixture of aleatory and epistemic uncertainty is commonly represented via imprecise probabilities. Propagating this kind of uncertainty through an expensive numerical model (e.g. an FE simulation) typically requires a double-loop procedure: an outer loop searching the epistemic space for the bounding case, and an inner loop propagating the aleatory uncertainty at each candidate. Done directly on the true model, this is prohibitively expensive. To addresses that cost surrogate models are built in an augmented standard-normal space, and by using the Confidence-based Adaptive Bayesian Optimization (CABO) scheme to actively steer both loops with as few true model evaluations as possible all of which implemented in Julia.
 
-## What this Repository Implements
+- **Expensive models:** FE/CFD simulations can take hours up to days per run.
+- **Imprecise inputs:** Some inputs are only known as intervals or distribution families (p-boxes), i.e. a mix of aleatory and epistemic uncertainty.
+- **Intractable propagation:** bounding a QoI needs a double loop, epistemic outer $\times$ aleatory inner, which means millions of model calls
+
+**This package:** build a surrogate in an augmented standard-normal space and use a *Collaborative and Adaptive Bayesian Optimization* (*CABO*) to place the few true-model calls where they tighten the bounds.
+
+This repository accompanies my **Master's thesis** in **Computational Engineering** at **Leibniz University Hannover**, carried out at the **Institute for Risk and Reliability**.
+
+## Features
+### 1. Augmented space construction
+Each input is classified by its type of uncertainty and mapped to standard normal coordinates $w = (u, v)$:
+- $u$ an aleatory variable
+- $v$ an epistemic variable
+
+<p align="center">
+  <img
+    src = "assets/input_classification.png"
+    alt = "uncertain input classification"
+    width = "500"
+  />
+</p>
+
+<div align="center">
+
+|             | Type-I  | Type-II | Type-III |
+|-------------|---------|---------|----------|
+| Description | Precise distribution | Parametric p-box | Interval |
+| Model       | $F_X(x)$ | $F_{X\mid\theta}(x), \theta \in [\theta^L,\theta^U]$ | $x \in [x^L,x^U]$ |
+| Coordinates | $u$ | $u,v_1,\dots,v_n$ | $v$ |
+| Spec type   | `PreciseSpec` | `HybridSpec` | `IntervalSpec` |
+
+</div>
+
+The snippet below defines three random variables from `UQ.jl`, **a precise variable** $x_1$ (pure aleatory), **an imprecise parametric variable** $x_2$ (mixture of aleatory and epistemic) and **an interval variable** $x_3$ (pure epistemic). `SM.jl` generates the augmented specification from it, and can give two dataframes:
+- `data_augmented`: samples of augmented coordinates $w = (u_1, u_2, v_{2_{1}}, v_{2_{2}}, v_3)$
+- `data_physical`: physical coordinates $x = (x_1, x_2, x_3)$
+
+```julia
+using UncertaintyQuantification
+using SurrogateModelling
+
+# creating precise/imprecise random variables (from UQ.jl)
+x1 = RandomVariable(Normal(0, 1), :x1) # pure aleatory -> u1
+x2 = RandomVariable(ProbabilityBox{Normal}(
+  Dict(
+    :μ => Interval(-1.5, -1.5), # -> v2_1 
+    :σ => Interval(0.1,   0.5)  # -> v2_2
+  )), :x2 # -> u2
+)
+x3 = IntervalVariable(-π, π, :x3) # pure epistemic -> v3
+
+# creating model (UQ.jl)
+model = Model(df -> df.x1 .+ df.x2 .+ df.x3, :y)
+
+# building augmented space design (SM.jl)
+specs = InputSpec.([x1, x2, x3])
+data_augmented, data_physical = build_augmented_design(
+  model,  # simple UQ.jl model
+  specs   # input specification
+  20      # number of samples
+)
+```
+
+
+### 2. Surrogates under one interface
+All surrogates are implemented under a unified interface:
+
 - **Gaussian Process (GP)**: regression with ARD kernels (Matérn 5/2, 3/2, 1/2, Squared Exponential).
-  
 - **Polynomial Chaos Expansion (PCE)**: with multiple truncation schemes (Total Degree, Tensor Product, Hyperbolic Cross, Q-Ball / hyperbolic cross), Hermite/Legendre bases, and both OLS and LASSO solvers.
-  
 - **Polynomial Chaos Kriging (PCK)**: a low-degree PCE trend combined with a GP residual, used where a pure PCE cannot resolve strongly localised or highly-interacting response surfaces without an infeasible degree.
-  
-- **Augmented-Space Construction**: a small type hierarchy (PreciseSpec, IntervalSpec, HybridSpec) mapping arbitrary precise/interval/hybrid UQ.jl inputs into a joint standard-normal-space representation (u, v).
-  
-- **CABO**: the adaptive bounding loop itself:
-  - _Bayesian-optimization "BO engine"_ that searches the epistemic space for the bounding QoI value.
-  - _Bayesian-cubature "BC engine"_ that decides where to spend the next expensive model evaluation. Supports mean, variance, and failure-probability (Pf) quantities of interest.
-  - _EOLE (Expansion Optimal Linear Estimation) sampling_: a truncated Karhunen–Loève representation of the GP posterior.
+
+```julia
+metamodel = GaussianProcess(data_train, :y; ...)          # or
+metamodel = PolynomialChaosExpansion(data_train, :y; ...) # or
+metamodel = PolynomialChaosKriging(data_train, :y; ...)
+
+# same hyperparameter fitting and predicting interface
+fit!(metamodel)
+μ, σ² = predict(metamodel, X_test)
+```
+
+<p align="center">
+  <img
+    src = "assets/surrogate_comparison.png"
+    alt="GP vs PCE vs PCK on a 1D function"
+    width = "500"
+  />
+</p>
+
+**PCE** (a global polynomial) can't resolve the localised structure; **PCK** adds a **GP** residual and recovers it, with calibrated uncertainty.
+
+### 3. CABO: adaptive bound estimation
+- **Bayesian Optimization (BO) engine:** searches the epistemic space for the candidate most likely to improve the bound
+- **Bayesian Cubature (BC) engine:** at that candidate, picks the aleatory point where the surrogate is least reliable
+- **Expansion Optimal Linear Estimation (EOLE) sampling:** a truncated Karhunen–Loève representation of the GP posterior. Used to quantify the uncertainty of the QoI
+- Supported QoIs: mean, variance, failure probability.
+
 
 ## Repository Structure
 

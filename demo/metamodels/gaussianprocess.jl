@@ -27,8 +27,8 @@ n_train, n_test = 40, 1000
 data_train = sample([x1, x2], MonteCarlo(n_train))
 data_test  = sample([x1, x2], MonteCarlo(n_test))
 
-UncertaintyQuantification.evaluate!(model, data_train)   # writes the :y column into data_train
-UncertaintyQuantification.evaluate!(model, data_test)
+evaluate!(model, data_train)   # writes the :y column into data_train
+evaluate!(model, data_test)
 
 # ============================================================================================
 # 2. Construct and fit a GaussianProcess

@@ -10,8 +10,8 @@ using SurrogateModelling
 using DataFrames
 using Statistics
 
-gr()
-Random.seed!(42)
+# gr()
+# Random.seed!(42)
 
 # ---------------------------------------------------------
 # Model definition (same Forrester-style function as before)
@@ -32,7 +32,7 @@ p_max    = 15   # modest trend degree -> PCE underfits a bit, motivating PCK's r
 # ---------------------------------------------------------
 # Training / test data
 # ---------------------------------------------------------
-n_train = 5
+n_train = 9
 design_train = LatinHypercubeSampling(n_train)
 data_train = sample(X, design_train)
 evaluate!(model, data_train)
