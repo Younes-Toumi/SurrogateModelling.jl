@@ -13,10 +13,8 @@ using KernelFunctions
 using LinearAlgebra
 
 
-
-Random.seed!(42)
-
 gr()
+Random.seed!(42)
 
 # ---------------------------------------------------------
 # Training data
@@ -29,15 +27,14 @@ model = Model(
     :y
 )
 
-n_train, n_test = 5, 1001
+n_train, n_test = 7, 1001
 
-design_train = MonteCarlo(n_train)
-design_test  = MonteCarlo(n_test)
-
+design_train = LatinHypercubeSampling(n_train)
 data_train = sample(X, design_train)
-data_test  = sample(X, design_test)
-
 evaluate!(model, data_train)
+
+design_test = LatinHypercubeSampling(n_test)
+data_test = sample(X, design_test)
 evaluate!(model, data_test)
 
 # ---------------------------------------------------------
@@ -65,7 +62,7 @@ x_plot = x_grid.x
     variance    = 1.0,
 )
 
-kernel_prefit = SurrogateModelling.build_kernel(GPSquaredExponential(), θ_init)
+kernel_prefit = build_kernel(GPSquaredExponential(), θ_init)
 gp_prior_raw = GP(kernel_prefit)                       # AbstractGPs defaults to zero mean
 fx_prior     = gp_prior_raw(x_plot', 1e-8)             # small jitter, purely numerical
 
