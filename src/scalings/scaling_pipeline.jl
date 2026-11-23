@@ -13,12 +13,12 @@ function fit_pipeline(X::Matrix, y::Vector, input_type, output_type)
     return ScalingPipeline(input_scaler, output_scaler)
 end
 
-function transform_input(p::ScalingPipeline, X::Matrix)
-    return transform(p.input_scaler, X)
+function scale_input(p::ScalingPipeline, X::Matrix)
+    return scale(p.input_scaler, X)
 end
 
-function transform_output(p::ScalingPipeline, y::Vector)
-    return vec(transform(p.output_scaler, reshape(y, :, 1)))
+function scale_output(p::ScalingPipeline, y::Vector)
+    return vec(scale(p.output_scaler, reshape(y, :, 1)))
 end
 
 # ============================================================
@@ -32,19 +32,19 @@ function fit_pipeline(data::DataFrame, output::Symbol, input_type, output_type)
     return fit_pipeline(X, y, input_type, output_type)
 end
 
-function transform(p::ScalingPipeline, data::DataFrame, output::Symbol)
+function scale_data(p::ScalingPipeline, data::DataFrame, output::Symbol)
     x_names  = propertynames(data[:, Not(output)])
-    X_scaled = transform_input(p, Matrix(data[:, x_names]))
-    y_scaled = transform_output(p, Vector(data[:, output]))
+    X_scaled = scale_input(p, Matrix(data[:, x_names]))
+    y_scaled = scale_output(p, Vector(data[:, output]))
 
     df = DataFrame(X_scaled, collect(x_names))
     df[!, output] = y_scaled
     return df
 end
 
-function inverse_transform(p::ScalingPipeline, data::DataFrame, output::Symbol)
+function unscale_data(p::ScalingPipeline, data::DataFrame, output::Symbol)
     x_names  = propertynames(data[:, Not(output)])
-    X        = inverse_transform(p.input_scaler, Matrix(data[:, x_names]))
+    X        = unscale(p.input_scaler, Matrix(data[:, x_names]))
     y        = inverse_mean(p, Vector(data[:, output]))
 
     df = DataFrame(X, collect(x_names))
@@ -54,18 +54,19 @@ end
 
 
 # ============================================================
-# transform mena and variance
+# scale mena and variance
 # ============================================================
  
 function inverse_mean(p::ScalingPipeline, μ::Vector)
-    return vec(inverse_transform(p.output_scaler, reshape(μ, :, 1)))
+    return vec(unscale(p.output_scaler, reshape(μ, :, 1)))
 end
 
 function inverse_variance(p::ScalingPipeline, σ2::Vector)
-    return variance_transform(p.output_scaler, σ2)
+    return variance_scale(p.output_scaler, σ2)
 end
 
 export 
     MinMaxScaler, ZScoreScaler, 
-    fit_pipeline, transform_input, transform_output, transform,
+    fit_pipeline, scale_input, scale_output, scale,
+    scale_data, unscale_data,
     inverse_mean, inverse_variance

@@ -17,7 +17,7 @@ model = Model(
 # ── Sampling ──────────────────────────────────────────────────────
 design_train = LatinHypercubeSampling(1000)
 data_train   = sample(X, design_train)
-UncertaintyQuantification.evaluate!(model, data_train)
+evaluate!(model, data_train)
 
 x_names = propertynames(data_train[:, Not(:y)])
 
@@ -32,8 +32,8 @@ pipeline = fit_pipeline(
     MinMaxScaler
 )
 
-X_train_scaled = transform_input(pipeline, X_train)
-y_train_scaled = transform_output(pipeline, y_train)
+X_train_scaled = scale_input(pipeline, X_train)
+y_train_scaled = scale_output(pipeline, y_train)
 
-println("input transformed min: $(round.(pipeline.input_scaler.min, digits=3))")
-println("input transformed max: $(round.(pipeline.input_scaler.max, digits=3))")
+println("input scaled min: $(round.(pipeline.input_scaler.min, digits=3))")
+println("input scaled max: $(round.(pipeline.input_scaler.max, digits=3))")

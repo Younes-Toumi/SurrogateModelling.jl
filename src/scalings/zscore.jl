@@ -10,14 +10,14 @@ function fit_scaler(::Type{ZScoreScaler}, X::Matrix)
     return ZScoreScaler(μ, σ)
 end
 
-function transform(s::ZScoreScaler, X::Matrix)
+function scale(s::ZScoreScaler, X::Matrix)
     return (X .- s.μ') ./ s.σ'
 end
 
-function inverse_transform(s::ZScoreScaler, X::Matrix)
+function unscale(s::ZScoreScaler, X::Matrix)
     return X .* s.σ' .+ s.μ'
 end
 
-function variance_transform(s::ZScoreScaler, V::AbstractArray)
+function variance_scale(s::ZScoreScaler, V::AbstractArray)
     return V .* (s.σ .^ 2)
 end
