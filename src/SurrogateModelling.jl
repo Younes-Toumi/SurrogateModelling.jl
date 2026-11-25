@@ -30,7 +30,14 @@ import  UncertaintyQuantification: evaluate!
 
 # ================================================================================= #
 # 0. helper one-liner functions
-# ================================================================================= # 
+# 0. scalings
+# ================================================================================= #
+
+include("scalings/scalings.jl")
+include("scalings/identity.jl")
+include("scalings/minmax.jl")
+include("scalings/zscore.jl")
+include("scalings/scaling_pipeline.jl")
 
 φ(z)     = pdf(Normal(), z)
 Φ(z)     = cdf(Normal(), z)
@@ -90,18 +97,8 @@ include("metamodels/pce/polynomialchaosexpansion.jl")
 include("metamodels/pck/polynomialchaoskriging.jl")
 
 
-
 # ================================================================================= #
-# 2. scalings
-# ================================================================================= #
-
-include("scalings/scalings.jl")
-include("scalings/minmax.jl")
-include("scalings/zscore.jl")
-include("scalings/scaling_pipeline.jl")
-
-# ================================================================================= #
-# 3. Metrics
+# 2. Metrics
 # ================================================================================= #
 
 include("metrics/metrics.jl")

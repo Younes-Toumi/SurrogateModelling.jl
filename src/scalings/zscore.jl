@@ -3,18 +3,18 @@ struct ZScoreScaler <: AbstractScaler
     σ::Vector{Float64}
 end
 
-function fit_scaler(::Type{ZScoreScaler}, X::Matrix)
+function fit_scaler(::Type{ZScoreScaler}, X::AbstractMatrix)
     μ = vec(mean(X, dims=1))
     σ = vec(std(X, dims=1))
-    σ[σ .== 0.0] .= 1.0
+    σ[σ .<= 1e-9] .= 1.0
     return ZScoreScaler(μ, σ)
 end
 
-function scale(s::ZScoreScaler, X::Matrix)
+function scale(s::ZScoreScaler, X::AbstractMatrix)
     return (X .- s.μ') ./ s.σ'
 end
 
-function unscale(s::ZScoreScaler, X::Matrix)
+function unscale(s::ZScoreScaler, X::AbstractMatrix)
     return X .* s.σ' .+ s.μ'
 end
 
