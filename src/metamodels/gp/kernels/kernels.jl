@@ -68,7 +68,7 @@ function default_ard_θ(X::Matrix, y::Vector)
 
     l = [median_pairwise_distance(X[:, j:j]) for j in 1:d]   # one l per input    
 
-    l_min = 0.1 * min_pairwise_distance(X)  # blocks l → 0
+    l_min = min_pairwise_distance(X)  # blocks l → 0
     l_max = max_pairwise_distance(X)        # blocks l → ∞
 
     l = clamp.(l, l_min, l_max)
@@ -87,7 +87,7 @@ function default_ard_θ0(X::Matrix, y::Vector)
 
     l = [median_pairwise_distance(X[:, j:j]) for j in 1:d]   # one l per input    
 
-    l_min = 0.1 * min_pairwise_distance(X)  # blocks l → 0
+    l_min = min_pairwise_distance(X)  # blocks l → 0
     l_max = max_pairwise_distance(X)        # blocks l → ∞
 
     l = clamp.(l, l_min, l_max)

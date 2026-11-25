@@ -32,7 +32,7 @@ p_max    = 15   # modest trend degree -> PCE underfits a bit, motivating PCK's r
 # ---------------------------------------------------------
 # Training / test data
 # ---------------------------------------------------------
-n_train = 9
+n_train = 7
 design_train = LatinHypercubeSampling(n_train)
 data_train = sample(X, design_train)
 evaluate!(model, data_train)
@@ -60,7 +60,7 @@ COLOR_PCK = :seagreen
 # ---------------------------------------------------------
 # Fit the three surrogates
 # ---------------------------------------------------------
-kernel_type = GPMatern52
+kernel_type = GPSquaredExponential
 
 gp = SurrogateModelling.GaussianProcess(data_train, y_symbol; kernel_type=kernel_type())
 fit!(gp)
