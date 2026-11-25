@@ -6,6 +6,8 @@ using Test
 Random.seed!(42)
 
 # testing the one dimensional construction of GP
+
+println("testing GP surrogate: 1D construction...")
 @testset "1D Construction" begin
     # deterministic design: no RNG needed for the data
     n_train = 8
@@ -25,6 +27,7 @@ Random.seed!(42)
 end
 
 # testing the higher dimension construction of GP
+println("testing GP surrogate: 2D construction...")
 @testset "2D Construction" begin
     # aleatory design using UQ.jl
     n_train =10
@@ -52,6 +55,7 @@ end
     @test_throws ErrorException predict(gp, gp.X)   # predicting before fit! must fail
 end
 
+println("testing GP surrogate: fitting...")
 @testset "Fitting" begin
     n_train = 10
     n_test = 1001
@@ -109,6 +113,7 @@ end
     end
 end
 
+println("testing GP surrogate: predict...")
 @testset "Predict" begin
     n_train = 10
     n_test = 1001

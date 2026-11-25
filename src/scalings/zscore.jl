@@ -6,7 +6,9 @@ end
 function fit_scaler(::Type{ZScoreScaler}, X::AbstractMatrix)
     μ = vec(mean(X, dims=1))
     σ = vec(std(X, dims=1))
-    σ[σ .<= 1e-9] .= 1.0
+    # constant / near-constant columns, or a single sample (std = NaN)
+    tol = 1e-9 .* max.(abs.(μ), 1)
+    σ[(σ .<= tol) .| isnan.(σ)] .= 1.0
     return ZScoreScaler(μ, σ)
 end
 
