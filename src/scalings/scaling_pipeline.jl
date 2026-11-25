@@ -7,17 +7,17 @@ end
 # 1. matrix aware
 # ============================================================
 
-function fit_pipeline(X::Matrix, y::Vector, input_type, output_type)
+function fit_pipeline(X::AbstractMatrix, y::AbstractVector, input_type, output_type)
     input_scaler  = fit_scaler(input_type, X)
     output_scaler = fit_scaler(output_type, reshape(y, :, 1))
     return ScalingPipeline(input_scaler, output_scaler)
 end
 
-function scale_input(p::ScalingPipeline, X::Matrix)
+function scale_input(p::ScalingPipeline, X::AbstractMatrix)
     return scale(p.input_scaler, X)
 end
 
-function scale_output(p::ScalingPipeline, y::Vector)
+function scale_output(p::ScalingPipeline, y::AbstractVector)
     return vec(scale(p.output_scaler, reshape(y, :, 1)))
 end
 
@@ -57,16 +57,16 @@ end
 # scale mena and variance
 # ============================================================
  
-function inverse_mean(p::ScalingPipeline, μ::Vector)
+function inverse_mean(p::ScalingPipeline, μ::AbstractVector)
     return vec(unscale(p.output_scaler, reshape(μ, :, 1)))
 end
 
-function inverse_variance(p::ScalingPipeline, σ2::Vector)
+function inverse_variance(p::ScalingPipeline, σ2::AbstractVector)
     return variance_scale(p.output_scaler, σ2)
 end
 
 export 
-    MinMaxScaler, ZScoreScaler, 
+    IdentityScaler, MinMaxScaler, ZScoreScaler, 
     fit_pipeline, scale_input, scale_output, scale,
     scale_data, unscale_data,
     inverse_mean, inverse_variance
