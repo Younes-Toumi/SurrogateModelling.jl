@@ -27,7 +27,7 @@ function build_kl_sampler(gp, W::Matrix{Float64}, X_train::Matrix{Float64};
     V_r, λ_r = V_post[:, 1:r], λ_post[1:r]
 
     Ξ         = randn(r, Ng)
-    coeff_mat = V_r * (Ξ ./ reshape(sqrt.(λ_r), :, 1))   # N0 × Ng, built once
+    coeff_mat = sqrt(only(inverse_variance(gp.scaler, [1.0]))) .* (V_r * (Ξ ./ reshape(sqrt.(λ_r), :, 1)))   # N0 × Ng, built once
 
     # ── preallocated ONCE, reused every call ──────────────────────────────
     nthreads = Threads.nthreads()

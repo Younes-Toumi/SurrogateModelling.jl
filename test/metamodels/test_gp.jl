@@ -17,7 +17,7 @@ println("testing GP surrogate: 1D construction...")
     gp = GaussianProcess(data, :y)
 
     @test size(gp.X) == (n_train, 1)
-    @test gp.y == data.y
+    @test gp.y ≈ scale_output(gp.scaler, data.y)
     @test gp.x_names == [:x]              # every column except :y is an input
     @test gp.y_symbol == :y
     @test gp.kernel_type isa GPMatern52   # the documented default
@@ -46,7 +46,7 @@ println("testing GP surrogate: 2D construction...")
     gp = GaussianProcess(data_train, :y)
 
     @test size(gp.X) == (n_train, 2)
-    @test gp.y == data_train.y
+    @test gp.y ≈ scale_output(gp.scaler, data_train.y)
     @test gp.x_names == [:x1, :x2]        # every column except :y is an input
     @test gp.y_symbol == :y
     @test gp.kernel_type isa GPMatern52   # the documented default
@@ -99,17 +99,17 @@ println("testing GP surrogate: fitting...")
     end
 
     @testset "hyperparameters stay within their bounds" begin
-        l_min = 0.1 * min_pairwise_distance(gp.X)   # same bounds as default_ard_θ
+        l_min = min_pairwise_distance(gp.X)   # same bounds as default_ard_θ
         l_max = max_pairwise_distance(gp.X)
         @test all(l_min .≤ θ_post.lengthscale .≤ l_max)
         @test 1e-9 ≤ θ_post.variance ≤ 100 * var(gp.y)
     end    
 
     @testset "interpolates the training data" begin
-        μ_train, σ2_train = predict(gp, gp.X) # we predict training data
-        σ_train = sqrt.(σ2_train)
-        @test maximum(abs.(μ_train .- gp.y)) ≤ 1e-6 * std(gp.y) # mean should match the output
-        @test maximum(σ2_train) ≈ 1e-8 atol = 1e-10
+        X_train = Matrix(data_train[:, gp.x_names])
+        μ_train, σ2_train = predict(gp, X_train)
+        @test maximum(abs.(μ_train .- data_train.y)) ≤ 1e-6 * std(data_train.y)
+        @test maximum(σ2_train) / var(data_train.y) ≈ 1e-8 atol = 1e-10
     end
 end
 
