@@ -16,6 +16,7 @@ distribution. Must be fitted before predictions can be made.
 - `posterior`: Trained GP posterior, or `nothing` if not yet fitted
 - `y_symbol::Symbol`: Name of the output column in the original `DataFrame`
 - `x_names::Vector{Symbol}`: Names of the input columns, used for column-safe prediction
+- `scaler`::ScalingPipeline: Scaling applied to the data for better fitting
 - `unflatten`: Inverse of `value_flatten` - reconstructs a `NamedTuple` from a flat vector
 - `mean_prefit`, `kernel_prefit`: pre-fitted mean/kernel objects built at construction time
 - `mean_postfit`, `kernel_postfit`: Mean/kernel objects built at the optimised `θ`
@@ -40,7 +41,7 @@ mutable struct GaussianProcess <: UQModel
 
     y_symbol::Symbol
     x_names::Vector{Symbol}
-
+    scaler::ScalingPipeline
     unflatten
     mean_prefit
     kernel_prefit
@@ -82,8 +83,7 @@ gp = GaussianProcess(train_df, :y; kernel_type=GPSquaredExponential(), learn_noi
 
 # Notes
 - All columns in `data` except `y_symbol` are treated as inputs
-- Input scaling should be applied to `data` **before** constructing the GP
-
+- A user's supplied θ is in scaled units
 """
 function GaussianProcess(
     data::DataFrame,
@@ -94,10 +94,18 @@ function GaussianProcess(
     learn_noise::Bool                  = false
 )
 
+    input_scaler::Type{<:AbstractScaler} = IdentityScaler
+    output_scaler::Type{<:AbstractScaler} = ZScoreScaler
+    
     x_names = propertynames(data[:, Not(y_symbol)])
 
-    X = Matrix(data[:, x_names])
-    y = Vector(data[:, y_symbol])
+    X_raw   = Matrix{Float64}(data[:, x_names])
+    y_raw   = Vector{Float64}(data[:, y_symbol])
+ 
+    scaler = fit_pipeline(X_raw, y_raw, input_scaler, output_scaler)
+    X = scale_input(scaler, X_raw)
+    y = scale_output(scaler, y_raw)
+    
 
     # Infer starting values from data if not provided (avoids flat/degenerate regions)
     θ0 = isnothing(θ) ? default_θ0(kernel_type, X, y) : θ
@@ -120,6 +128,7 @@ function GaussianProcess(
         nothing,
         y_symbol,
         x_names,
+        scaler,
         unflatten,
         mean_prefit,
         kernel_prefit,
@@ -232,7 +241,7 @@ function fit!(gp::GaussianProcess)
 
     # Build posterior with optimised hyperparameters
     kernel_opt = build_kernel(gp.kernel_type, θ_opt)
-    f_opt      = GP(kernel_opt)
+    f_opt      = GP(mean, kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
     fx         = f_opt(Xrows, noise)
@@ -329,7 +338,7 @@ function refit!(gp::GaussianProcess, X_new::AbstractMatrix{Float64}, y_new::Abst
 
     # Build posterior with optimised hyperparameters
     kernel_opt = build_kernel(gp.kernel_type, θ_opt)
-    f_opt      = GP(kernel_opt)
+    f_opt      = GP(mean, kernel_opt)
 
     noise      = gp.learn_noise ? θ_opt.noise : 1e-8
     fx         = f_opt(Xrows, noise)
@@ -396,24 +405,25 @@ function predict(
     n_samples::Int = 1,
 )
     gp.posterior === nothing && error("GP has not been trained yet. Call fit!(gp) first.")
-
     Xrows = RowVecs(Xnew)
+    s = gp.scaler
 
     if mode === :mean
         # mean-only path: never forms the n×n posterior covariance
-        return mean(gp.posterior(Xrows))
+        mean_scaled = mean(gp.posterior(Xrows))
+        return inverse_mean(s, mean_scaled)
 
     elseif mode === :var
         _, v = mean_and_var(gp.posterior, Xrows)   # marginal VARIANCE
-        return v
+        return inverse_variance(s, v)
 
     elseif mode === :mean_and_var
         μ, v = mean_and_var(gp.posterior, Xrows)
-        return μ, v                          # (mean, STD) preserves existing convention
+        return inverse_mean(s, μ), inverse_variance(s, v)                          # (mean, STD) preserves existing convention
 
     elseif mode === :sample
         fp = gp.posterior(Xrows, 1e-8)                    # full joint covariance
-        return rand(fp, n_samples)                  # n_points × n_samples
+        return unscale(s.output_scaler, rand(fp, n_samples))                  # n_points × n_samples
 
     else
         throw(ArgumentError("Unknown mode: $mode. Choose :mean, :var, :mean_and_var, or :sample."))
